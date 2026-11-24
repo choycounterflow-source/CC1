@@ -3609,8 +3609,14 @@ ${String(readmeContent).slice(0, 40000)}`;
 
 
 async function startServer() {
-  const distPath = path.resolve(__dirname, 'dist');
-  const isProd = process.env.NODE_ENV === 'production' && fs.existsSync(distPath);
+  const candidateDistPaths = [
+    path.resolve(process.cwd(), 'dist'),
+    path.resolve(__dirname, 'dist'),
+    path.resolve(__dirname, '../dist'),
+    path.resolve(__dirname),
+  ];
+  const distPath = candidateDistPaths.find((p) => fs.existsSync(path.join(p, 'index.html'))) || candidateDistPaths[0];
+  const isProd = process.env.NODE_ENV === 'production';
 
   if (isProd) {
     app.use(

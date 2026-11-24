@@ -357,9 +357,21 @@ var ChoyStore = class {
   async init() {
     const poolerUrl = this.stripEnvQuotes(process.env.DATABASE_POOL_URL);
     const directUrl = this.stripEnvQuotes(process.env.DATABASE_URL);
+    const isValidDbUrl = (url) => {
+      if (!url) return false;
+      try {
+        const parsed = new URL(url);
+        if (!parsed.hostname || parsed.hostname.toLowerCase() === "base" || parsed.hostname.includes("placeholder")) {
+          return false;
+        }
+        return true;
+      } catch {
+        return false;
+      }
+    };
     const candidates = [];
-    if (poolerUrl) candidates.push({ url: poolerUrl, source: "pooler_url" });
-    if (directUrl && directUrl !== poolerUrl) candidates.push({ url: directUrl, source: "database_url" });
+    if (poolerUrl && isValidDbUrl(poolerUrl)) candidates.push({ url: poolerUrl, source: "pooler_url" });
+    if (directUrl && directUrl !== poolerUrl && isValidDbUrl(directUrl)) candidates.push({ url: directUrl, source: "database_url" });
     if (candidates.length > 0) {
       for (const candidate of candidates) {
         try {
@@ -2731,17 +2743,12 @@ app.use("/api", (_req, res, next) => {
   res.setHeader("Expires", "0");
   next();
 });
-app.get("/api/health", async (_req, res) => {
-  await store.ready();
-  const mediaStorage = getSupabaseStorageStatus();
-  res.json({
+app.get("/api/health", (_req, res) => {
+  res.status(200).json({
     status: "ok",
     host: "render",
     storageMode: store.storageMode,
     storageStatus: store.storageStatus,
-    connectionPool: store.getPoolStats(),
-    mediaStorageMode: mediaStorage.configured ? "supabase" : "inline",
-    mediaBucket: mediaStorage.bucket,
     timestamp: (/* @__PURE__ */ new Date()).toISOString()
   });
 });
@@ -5507,8 +5514,14 @@ ${String(readmeContent).slice(0, 4e4)}`;
   }
 });
 async function startServer() {
-  const distPath = path2.resolve(__dirname, "dist");
-  const isProd = process.env.NODE_ENV === "production" && fs2.existsSync(distPath);
+  const candidateDistPaths = [
+    path2.resolve(process.cwd(), "dist"),
+    path2.resolve(__dirname, "dist"),
+    path2.resolve(__dirname, "../dist"),
+    path2.resolve(__dirname)
+  ];
+  const distPath = candidateDistPaths.find((p) => fs2.existsSync(path2.join(p, "index.html"))) || candidateDistPaths[0];
+  const isProd = process.env.NODE_ENV === "production";
   if (isProd) {
     app.use(
       express.static(distPath, {
@@ -5563,7 +5576,6 @@ async function startServer() {
   server.keepAliveTimeout = 65e3;
   server.headersTimeout = 66e3;
 }
-startServer();
 app.post("/api/github/org-sync", requireAuth, async (req, res) => {
   try {
     const hasBearer = Boolean(req.headers.authorization?.startsWith("Bearer "));
@@ -5714,3 +5726,4 @@ app.post("/api/github/export-issue", requireAuth, async (req, res) => {
     });
   }
 });
+startServer();
