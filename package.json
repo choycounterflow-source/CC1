@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "tsx server.ts",
     "start": "NODE_ENV=production node --import tsx server.ts",
-    "build": "NODE_OPTIONS='--max-old-space-size=400' vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit"

@@ -3683,7 +3683,6 @@ async function startServer() {
   server.headersTimeout = 66000;
 }
 
-startServer();
 // 5d. Sync all repositories from a GitHub organization or user
 app.post('/api/github/org-sync', requireAuth, async (req: AuthedRequest, res: Response) => {
   try {
@@ -3853,3 +3852,5 @@ app.post('/api/github/export-issue', requireAuth, async (req: AuthedRequest, res
     });
   }
 });
+
+startServer();
