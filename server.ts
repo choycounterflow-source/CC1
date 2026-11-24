@@ -411,18 +411,13 @@ app.use('/api', (_req, res, next) => {
   next();
 });
 
-// Health check endpoint for Render hosting
-app.get('/api/health', async (_req, res) => {
-  await store.ready();
-  const mediaStorage = getSupabaseStorageStatus();
-  res.json({
+// Health check endpoint for Render hosting (immediate 200 response to prevent deploy timeouts)
+app.get('/api/health', (_req, res) => {
+  res.status(200).json({
     status: 'ok',
     host: 'render',
     storageMode: store.storageMode,
     storageStatus: store.storageStatus,
-    connectionPool: store.getPoolStats(),
-    mediaStorageMode: mediaStorage.configured ? 'supabase' : 'inline',
-    mediaBucket: mediaStorage.bucket,
     timestamp: new Date().toISOString(),
   });
 });
